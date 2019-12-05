@@ -68,7 +68,7 @@ public class MainGame extends GraphicsProgram {
             }
         }
     }
-    
+
     //moving ball
     private void moveBall() {
         ball.move(xVel,yVel);
