@@ -5,6 +5,8 @@ import java.awt.event.*;
 import java.awt.*;
 
 public class MainGame extends GraphicsProgram {
+
+    private RandomGenerator rgen = RandomGenerator.getInstance();
     private static final int MAP_WIDTH = 500;
     private static final int MAP_HEIGHT = 700;
     private static final int WIDTH=100;
@@ -13,24 +15,24 @@ public class MainGame extends GraphicsProgram {
     private static final int DIAM_BALL = 15;
     private static final int DELAY = 10;
     private static final double X_START = MAP_WIDTH/2;
-    private static final double Y_START = 500;
+    private static final double Y_START = 600;
     private static final double Y_PLATFORM_START=Y_START+DIAM_BALL/2+HEIGHT/2+1;
-    private double xVel = 1;//speed of x ball
-    private double yVel = -6;//speed
+    private double xVel = rgen.nextDouble(1,5);//speed of x ball
+    private double yVel = rgen.nextDouble(-6,-4);//speed
 
     private int x=0; //mouse scan x
-    private int y=0; //mouse scan y
+    private int timer=0;
 
     private GOval ball;
     private GRect platform;
 
-    RandomGenerator rgen = RandomGenerator.getInstance();
-
-    //setup
-    private void setup() {
-        addMouseListeners();
+    public void init() {
         this.setSize(MAP_WIDTH, MAP_HEIGHT);
         this.setBackground(Color.getHSBColor(25f,29f,30f));
+        addMouseListeners();
+    }
+
+    private void setup() {
         addBricks();
         addBall(X_START,Y_START,DIAM_BALL/2,Color.BLACK);
         addPlatform(X_START,Y_PLATFORM_START,WIDTH,HEIGHT,Color.BLACK);
@@ -38,22 +40,18 @@ public class MainGame extends GraphicsProgram {
 
     public void run(){
         setup();
-        while(x==0&&y==0){
-            if(!(x==0)||!(y==0))break;//
-            pause(1);
-        }
+        while(x==0){pause(1);} // while mouse is out of window, program sleeps
         while(true) {
             moveBall();
             checkForCollision();
+            if(timer > 0) timer--;
             pause(DELAY);
         }
 
     }
     public void mouseMoved(MouseEvent e){
+        platform.setLocation(e.getX()-WIDTH/2,Y_PLATFORM_START);
         x=e.getX();
-        y=e.getY();
-        remove(platform);
-        addPlatform(x,Y_PLATFORM_START,100,10,Color.BLACK);
     }
 
     // This method creates the bricks for this game
@@ -74,22 +72,62 @@ public class MainGame extends GraphicsProgram {
         ball.move(xVel,yVel);
     }
 
-    // checking for collision
+    // checking for collisions
     private void checkForCollision() {
-        if(ball.getY()<DIAM_BALL/2)yVel = -yVel;//for ceiling
-        if((ball.getX()>getWidth()-DIAM_BALL)||(ball.getX()<DIAM_BALL/2))xVel = -xVel;//for walls
-        if(ball.getY()>getHeight()-DIAM_BALL){
-            //todo minus life
+        if(ball.getY()<DIAM_BALL/2){  //for ceiling
+            yVel = -yVel;
+        } else if((ball.getX()>getWidth()-DIAM_BALL)||(ball.getX()<DIAM_BALL/2)){  //for walls
+            xVel = -xVel;
+        } else if(ball.getY()+DIAM_BALL>MAP_HEIGHT){
+            ball.setLocation(platform.getX()+WIDTH/2,platform.getY()-DIAM_BALL*2);
+            yVel = -yVel;
         }
-        if((ball.getX()+DIAM_BALL>x-WIDTH/2&&ball.getX()+DIAM_BALL<x+WIDTH/2)&&
-                (ball.getY()+DIAM_BALL>Y_PLATFORM_START-HEIGHT/2&&ball.getY()+DIAM_BALL<Y_PLATFORM_START+HEIGHT)){
-            yVel=-yVel;
+        if(timer==0){
+            collisionWithBricks();
         }
+    }
 
+    private void collisionWithBricks(){
+        if(bricksRemover(ball.getX()+DIAM_BALL/2,ball.getY()-1,0) ||
+                bricksRemover(ball.getX()+DIAM_BALL/2+MAP_WIDTH/100,ball.getY()-1,0) ||
+                bricksRemover(ball.getX()+DIAM_BALL/2-MAP_WIDTH/100,ball.getY()-1,0)){
+            yVel = -yVel;
+            timer=2;
+        } else if(bricksRemover(ball.getX()+DIAM_BALL/2,ball.getY()+DIAM_BALL+1,0) ||
+                bricksRemover(ball.getX()+DIAM_BALL/2+MAP_WIDTH/100,ball.getY()+DIAM_BALL+1,0) ||
+                bricksRemover(ball.getX()+DIAM_BALL/2-MAP_WIDTH/100,ball.getY()+DIAM_BALL+1,0)){
+            yVel = -yVel;
+            timer=2;
+        } else if(bricksRemover(ball.getX()-1,ball.getY()+DIAM_BALL/2,-1) ||
+                bricksRemover(ball.getX()-1,ball.getY()+DIAM_BALL/2 + MAP_WIDTH/100,-1) ||
+                bricksRemover(ball.getX()-1,ball.getY()+DIAM_BALL/2 - MAP_WIDTH/100,-1)){
+            xVel = -xVel;
+            timer=2;
+        } else if(bricksRemover(ball.getX()+DIAM_BALL+1,ball.getY()+DIAM_BALL/2,1) ||
+                bricksRemover(ball.getX()+DIAM_BALL+1,ball.getY()+DIAM_BALL/2 + MAP_WIDTH/100,1) ||
+                bricksRemover(ball.getX()+DIAM_BALL+1,ball.getY()+DIAM_BALL/2 - MAP_WIDTH/100,1)){
+            xVel = -xVel;
+            timer=2;
+        }
+    }
+
+    private boolean bricksRemover(double xCoord, double yCoord, int num){
+        if(getElementAt(xCoord, yCoord) != null && getElementAt(xCoord, yCoord) != platform){
+            remove(getElementAt(xCoord, yCoord));
+            return true;
+        } else if(getElementAt(xCoord, yCoord) == platform && timer==0){
+            if(xVel*num>0){
+                xVel = -xVel;
+            }
+            yVel=-yVel;
+            timer = 5;
+            return false;
+        }
+        return false;
     }
 
     //This method creates a platform, which users will use to beat back the ball
-    public void addPlatform(double x, double y, double w,double h, Color color){
+    private void addPlatform(double x, double y, double w,double h, Color color){
         platform = new GRect (x-w/2, y-h/2, w, h);
         platform.setFilled(true);
         platform.setColor(color);
