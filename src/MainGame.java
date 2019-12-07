@@ -3,7 +3,7 @@ import acm.program.*;
 import acm.util.RandomGenerator;
 import java.awt.event.*;
 import java.awt.*;
-
+import java.awt.Color;
 public class MainGame extends GraphicsProgram {
 
     private RandomGenerator rgen = RandomGenerator.getInstance();
@@ -32,20 +32,32 @@ public class MainGame extends GraphicsProgram {
     private double yVel = 1.75;
     /**coordinate X of the mouse*/
     private int x=0;
+    /**coordinate Y of the mouse*/
+    private int y=0;
     /**prevents the ball from getting stuck in platform*/
     private int timer=0;
     /**Number of users' lives*/
     private int lives = 3;
     /**Number of bricks left*/
     private int bricksQuantity = 100;
+    /** for fixing bugs*/
+    private int menu=0;
+    /** score*/
+    private int score=0;
 
     private GOval ball;
     private GRect platform;
     private GRect upperBar;
+    private GLabel start;
+    private GRect startR;
+    private GLabel lose;
+    private GLabel scoreL;
 
+    private int X_B=150;//button x
+    private int Y_B=400;//button y
     public void init() {
         this.setSize((int)MAP_WIDTH, (int)MAP_HEIGHT);
-        this.setBackground(Color.getHSBColor(30f,29f,25f)); //той жовтий колір, що був, ну прям задуже яскравий, треба якийсь приглушеніший, щоб очі не різало
+        this.setBackground(Color.getHSBColor(5f,5f,300f)); //оцей, ніби, норм
         addMouseListeners();
     }
 
@@ -58,24 +70,65 @@ public class MainGame extends GraphicsProgram {
         while(xVel<0.75 && xVel>-0.75){
             xVel = rgen.nextDouble(-2, 2);
         }
+        score = 0;
+        scoreL = new GLabel("Score:"+score);
+        scoreL.setFont("Copperplate Gothic Bold-30");
+        add(scoreL,50,40);
+        menu=1;
     }
-
+    private void menu(){
+        start = new GLabel("Start");
+        start.setFont("Copperplate Gothic Bold-40");
+        add(filledRectS(X_B,Y_B+3,160,35,Color.GRAY));
+        add(start,X_B+13,Y_B);
+        start.sendToFront();
+    }
+    private void exitMenu(){
+        removeAll();
+        lose = new GLabel("You lost!");
+        lose.setFont("Kristen ITC-50");
+        lose.setVisible(false);
+        add(lose,125,250 );
+            if(lives==0){
+    lose.setVisible(true);
+    }
+    }
     public void run(){
-        setup();
-        while(x==0){pause(1);} // while mouse is out of window, program sleeps
+        menu();
+        while(menu==0){pause(1);}// while menu is opened
         while(lives > 0 && bricksQuantity>0) {
             if(timer > 0) timer--;
             moveBall();
             checkForCollision();
             pause(DELAY);
         }
-        System.exit(0); // temporary solution
+       exitMenu();
     }
+
+
     /**This method changes (X) coordinate of the platform as the mouse moves*/
     public void mouseMoved(MouseEvent e){
-        if(!(e.getX() + PLATFORM_WIDTH /2>MAP_WIDTH || e.getX() - PLATFORM_WIDTH /2<0)){
-            platform.setLocation(e.getX()- PLATFORM_WIDTH /2,Y_START);
-            x=e.getX();
+        x=e.getX();
+        y=e.getY();
+        if(menu==0){
+            if (x > X_B && x < X_B + 160 && y > Y_B - 35 && y < Y_B) {
+                startR.setFilled(true);
+            }
+            else {
+                startR.setFilled(false);
+            }
+        }
+        else if(menu==1){
+            if (!(x + PLATFORM_WIDTH / 2 > MAP_WIDTH || x - PLATFORM_WIDTH / 2 < 0)) {
+                platform.setLocation(e.getX() - PLATFORM_WIDTH / 2, Y_START);
+            }
+        }
+    }
+    public void mouseClicked(MouseEvent e){
+        if(startR.isFilled()&&menu==0){
+            start.setVisible(false);
+            startR.setVisible(false);
+            setup();
         }
     }
 
@@ -138,12 +191,14 @@ public class MainGame extends GraphicsProgram {
     }
 
     /**This method removes the bricks, if the ball crashes into it (or changes the ball's speed to opposite if the collision happened with platform)*/
-    private boolean bricksRemover(double xCoord, double yCoord, int num){
-        if(getElementAt(xCoord, yCoord) != null && getElementAt(xCoord, yCoord) != platform){
-            remove(getElementAt(xCoord, yCoord));
+    private boolean bricksRemover(double xCord, double yCord, int num){
+        if(getElementAt(xCord, yCord) != null && getElementAt(xCord, yCord) != platform){
+            remove(getElementAt(xCord, yCord));
+            score+=1;
             bricksQuantity--;
+            scoreL.setLabel("Score:"+score);
             return true;
-        } else if(getElementAt(xCoord, yCoord) == platform && timer==0){
+        } else if(getElementAt(xCord, yCord) == platform && timer==0){
             if(xVel*num>0){
                 xVel = -xVel;
             }
@@ -193,6 +248,13 @@ public class MainGame extends GraphicsProgram {
             remove(getElementAt(MAP_WIDTH-109,BAR_HEIGHT/2));
             add(new GImage("Heart_empty.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
         }
+    }
+    /** Draws rectangle (for a button)*/
+    private GRect filledRectS(int x, int y, int w,int h, Color color){
+        startR = new GRect (x, y-h, w, h);
+        startR.setColor(color);
+        startR.sendToFront();
+        return startR;
     }
 
 }
