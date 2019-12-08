@@ -3,7 +3,7 @@ import acm.program.*;
 import acm.util.RandomGenerator;
 import java.awt.event.*;
 import java.awt.*;
-import java.awt.Color;
+
 public class MainGame extends GraphicsProgram {
 
     private RandomGenerator rgen = RandomGenerator.getInstance();
@@ -32,32 +32,23 @@ public class MainGame extends GraphicsProgram {
     private double yVel = 1.75;
     /**coordinate X of the mouse*/
     private int x=0;
-    /**coordinate Y of the mouse*/
-    private int y=0;
     /**prevents the ball from getting stuck in platform*/
     private int timer=0;
     /**Number of users' lives*/
     private int lives = 3;
     /**Number of bricks left*/
-    private int bricksQuantity = 100;
-    /** for fixing bugs*/
-    private int menu=0;
-    /** score*/
-    private int score=0;
+    private int bricksQuantity = -1;
 
     private GOval ball;
     private GRect platform;
     private GRect upperBar;
-    private GLabel start;
-    private GRect startR;
-    private GLabel lose;
-    private GLabel scoreL;
+    private GLabel score;
+    private GRect startB;
+    private GLabel startL;
 
-    private int X_B=150;//button x
-    private int Y_B=400;//button y
     public void init() {
         this.setSize((int)MAP_WIDTH, (int)MAP_HEIGHT);
-        this.setBackground(Color.getHSBColor(5f,5f,300f)); //оцей, ніби, норм
+        this.setBackground(Color.getHSBColor(30f,29f,25f));
         addMouseListeners();
     }
 
@@ -70,65 +61,122 @@ public class MainGame extends GraphicsProgram {
         while(xVel<0.75 && xVel>-0.75){
             xVel = rgen.nextDouble(-2, 2);
         }
-        score = 0;
-        scoreL = new GLabel("Score:"+score);
-        scoreL.setFont("Copperplate Gothic Bold-30");
-        add(scoreL,50,40);
-        menu=1;
     }
+
+    /**This method creates all the menu buttons*/
     private void menu(){
-        start = new GLabel("Start");
-        start.setFont("Copperplate Gothic Bold-40");
-        add(filledRectS(X_B,Y_B+3,160,35,Color.GRAY));
-        add(start,X_B+13,Y_B);
-        start.sendToFront();
+        createMenuButton("Start", 40,3*MAP_WIDTH/8,MAP_HEIGHT/4,
+                MAP_WIDTH/4,MAP_WIDTH/10, new Color(91,168,245), 0);
+        createMenuButton("Exit", 40, 2*MAP_WIDTH/5,2*MAP_HEIGHT/5,
+                MAP_WIDTH/5,MAP_WIDTH/10, new Color(245, 15, 41), 2);
+        bricksQuantity = 100;
+        lives = 3;
     }
-    private void exitMenu(){
-        removeAll();
-        lose = new GLabel("You lost!");
-        lose.setFont("Kristen ITC-50");
-        lose.setVisible(false);
-        add(lose,125,250 );
-            if(lives==0){
-    lose.setVisible(true);
-    }
-    }
-    public void run(){
-        menu();
-        while(menu==0){pause(1);}// while menu is opened
-        while(lives > 0 && bricksQuantity>0) {
-            if(timer > 0) timer--;
-            moveBall();
-            checkForCollision();
-            pause(DELAY);
+
+    /**This method creates a specific menu button*/
+    private void createMenuButton(String name,int size, double x, double y, double w, double h, Color color, int num){
+        GRect btn = new GRect(x,y,w,h);
+        GLabel btn_label = new GLabel(name,x+18,y+size+2);
+        Font font_btn = new Font("Segoe UI Semibold", Font.BOLD, (int)(size*MAP_WIDTH/500));
+        btn_label.setFont(font_btn);
+        btn.setFilled(true);
+        btn.setFillColor(new Color(206,206,206));
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(num==1){
+                    timer = 1;
+                    removeAll();
+                    setup();
+                } else if(num == 2){
+                    System.exit(0);
+                }
+            }
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (num == 1) {
+                    btn.setFillColor(color);
+                } else if (num == 2){
+                    btn.setFillColor(color);
+                }else{
+                    if(btn.getX()==3*MAP_WIDTH/8){
+                        btn.move(-50,0);
+                        btn_label.move(-50,0);
+                        createLevels(0);
+                        btn.setFillColor(color);
+                    }
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (num == 1 && timer == 0) {
+                    btn.setFillColor(new Color(206, 206, 206));
+                    if(getElementAt(e.getX(),e.getY()) == null){
+                        createLevels(1);
+                        startB.setFillColor(new Color(206, 206, 206));
+                        startB.move(50,0);
+                        startL.move(50,0);
+                    }
+                } else if(num ==2){
+                    btn.setFillColor(new Color(206, 206, 206));
+                }
+            }
+        });
+        add(btn);
+        add(btn_label);
+        if(name.equals("Start")){
+            startB = btn;
+            startL = btn_label;
         }
-       exitMenu();
     }
 
+    private void createLevels(int num){
+        if(num == 0){
+            createMenuButton("Easy", 25,21*MAP_WIDTH/40, MAP_HEIGHT/4, MAP_WIDTH/4,MAP_WIDTH/15+2,
+                    new Color(159, 245, 86), 1);
+            createMenuButton("Medium", 25,21*MAP_WIDTH/40, MAP_HEIGHT/4+(MAP_WIDTH/15+2), MAP_WIDTH/4,MAP_WIDTH/15+2,
+                    new Color(245, 230, 102), 1);
+            createMenuButton("Hard", 25,21*MAP_WIDTH/40, MAP_HEIGHT/4+2*(MAP_WIDTH/15+2), MAP_WIDTH/4,MAP_WIDTH/15+2,
+                    new Color(221, 61, 68), 1);
 
+        } else{
+            if(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+10) != null &&
+                    getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+(MAP_WIDTH/15+2)+10) != null &&
+                    getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+2*(MAP_WIDTH/15+2)+10) != null) {
+                remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+10));
+                remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+10));
+                remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+(MAP_WIDTH/15+2)+10));
+                remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+(MAP_WIDTH/15+2)+10));
+                remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+2*(MAP_WIDTH/15+2)+10));
+                remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+2*(MAP_WIDTH/15+2)+10));
+            }
+        }
+    }
+
+    public void run() {
+        while(true){
+            menu();
+            while (xVel == 0) {
+                pause(1);
+            }
+            while (lives > 0 && bricksQuantity > 0) {
+                if (timer > 0) timer--;
+                moveBall();
+                checkForCollision();
+                pause(DELAY);
+            }
+            removeAll();
+            xVel = 0;
+        }
+    }
     /**This method changes (X) coordinate of the platform as the mouse moves*/
     public void mouseMoved(MouseEvent e){
-        x=e.getX();
-        y=e.getY();
-        if(menu==0){
-            if (x > X_B && x < X_B + 160 && y > Y_B - 35 && y < Y_B) {
-                startR.setFilled(true);
-            }
-            else {
-                startR.setFilled(false);
-            }
-        }
-        else if(menu==1){
-            if (!(x + PLATFORM_WIDTH / 2 > MAP_WIDTH || x - PLATFORM_WIDTH / 2 < 0)) {
+        if(xVel!=0) {
+            if (!(e.getX() + PLATFORM_WIDTH / 2 > MAP_WIDTH || e.getX() - PLATFORM_WIDTH / 2 < 0)) {
                 platform.setLocation(e.getX() - PLATFORM_WIDTH / 2, Y_START);
+                x = e.getX();
             }
-        }
-    }
-    public void mouseClicked(MouseEvent e){
-        if(startR.isFilled()&&menu==0){
-            start.setVisible(false);
-            startR.setVisible(false);
-            setup();
         }
     }
 
@@ -162,8 +210,11 @@ public class MainGame extends GraphicsProgram {
             lives--;
             minusLife();
             if(lives>0) {
-                ball.setLocation(platform.getX() + PLATFORM_WIDTH / 2, platform.getY() - DIAM_BALL * 2);
-                yVel = -yVel;
+                ball.setLocation(X_START-DIAM_BALL/2,MAP_HEIGHT/2-DIAM_BALL/2);
+                boolean xDirection = rgen.nextBoolean();
+                if(!xDirection) {
+                    xVel = -xVel;
+                }
             }
         }
         collisionWithBricks();
@@ -191,14 +242,13 @@ public class MainGame extends GraphicsProgram {
     }
 
     /**This method removes the bricks, if the ball crashes into it (or changes the ball's speed to opposite if the collision happened with platform)*/
-    private boolean bricksRemover(double xCord, double yCord, int num){
-        if(getElementAt(xCord, yCord) != null && getElementAt(xCord, yCord) != platform){
-            remove(getElementAt(xCord, yCord));
-            score+=1;
+    private boolean bricksRemover(double xCoord, double yCoord, int num){
+        if(getElementAt(xCoord, yCoord) != null && getElementAt(xCoord, yCoord) != platform){
+            remove(getElementAt(xCoord, yCoord));
             bricksQuantity--;
-            scoreL.setLabel("Score:"+score);
+            score.setLabel("Score:"+(100 - bricksQuantity));
             return true;
-        } else if(getElementAt(xCord, yCord) == platform && timer==0){
+        } else if(getElementAt(xCoord, yCoord) == platform && timer==0){
             if(xVel*num>0){
                 xVel = -xVel;
             }
@@ -234,6 +284,10 @@ public class MainGame extends GraphicsProgram {
         add(new GImage("Heart.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
         add(new GImage("Heart.png"),MAP_WIDTH-87,7*BAR_HEIGHT/50);
         add(new GImage("Heart.png"),MAP_WIDTH-45,7*BAR_HEIGHT/50);
+        score = new GLabel("Score:"+(100 - bricksQuantity));
+        Font score_font = new Font("Eras Bold ITC", Font.BOLD,(int)(40*MAP_WIDTH/500));
+        score.setFont(score_font);
+        add(score, MAP_WIDTH/50, 4*MAP_HEIGHT/75);
     }
 
     /**This method changes a red heart for a white heart, when users lose the ball*/
@@ -248,13 +302,6 @@ public class MainGame extends GraphicsProgram {
             remove(getElementAt(MAP_WIDTH-109,BAR_HEIGHT/2));
             add(new GImage("Heart_empty.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
         }
-    }
-    /** Draws rectangle (for a button)*/
-    private GRect filledRectS(int x, int y, int w,int h, Color color){
-        startR = new GRect (x, y-h, w, h);
-        startR.setColor(color);
-        startR.sendToFront();
-        return startR;
     }
 
 }
