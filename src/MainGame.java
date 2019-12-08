@@ -30,6 +30,7 @@ public class MainGame extends GraphicsProgram {
     private double xVel = 0;
     /**speed of the ball (Y)*/
     private double yVel = 1.75;
+
     /**coordinate X of the mouse*/
     private int x=0;
     /**prevents the ball from getting stuck in platform*/
@@ -38,6 +39,10 @@ public class MainGame extends GraphicsProgram {
     private int lives = 3;
     /**Number of bricks left*/
     private int bricksQuantity = -1;
+    /**for tips*/
+    private int tip1;
+    private int tip2;
+    private int tip3;
 
     private GOval ball;
     private GRect platform;
@@ -45,6 +50,9 @@ public class MainGame extends GraphicsProgram {
     private GLabel score;
     private GRect startB;
     private GLabel startL;
+    private GLabel tips;
+
+
 
     public void init() {
         this.setSize((int)MAP_WIDTH, (int)MAP_HEIGHT);
@@ -58,9 +66,15 @@ public class MainGame extends GraphicsProgram {
         addBall(X_START,MAP_HEIGHT/2,DIAM_BALL/2,Color.BLACK);
         addPlatform(X_START,Y_START, PLATFORM_WIDTH, PLATFORM_HEIGHT,Color.BLACK);
         addUpperBar(0,0,MAP_WIDTH,BAR_HEIGHT,Color.LIGHT_GRAY);
+        tips=new GLabel("",TIP_X,TIP_Y);
+        tips.setFont("Kristen ITC-50");
         while(xVel<0.75 && xVel>-0.75){
             xVel = rgen.nextDouble(-2, 2);
         }
+        tip1 = rgen.nextInt(0,25);//for big platform
+        tip2 = rgen.nextInt(25,50);//for slower tip
+        tip3 = rgen.nextInt(50,75);//for faster tip
+        yVel=1.75;
     }
 
     /**This method creates all the menu buttons*/
@@ -96,9 +110,11 @@ public class MainGame extends GraphicsProgram {
             public void mouseEntered(MouseEvent e) {
                 if (num == 1) {
                     btn.setFillColor(color);
-                } else if (num == 2){
+                }
+                else if (num == 2){
                     btn.setFillColor(color);
-                }else{
+                }
+                else{
                     if(btn.getX()==3*MAP_WIDTH/8){
                         btn.move(-50,0);
                         btn_label.move(-50,0);
@@ -153,10 +169,10 @@ public class MainGame extends GraphicsProgram {
             }
         }
     }
-
     public void run() {
         while(true){
             menu();
+            pause(500);
             while (xVel == 0) {
                 pause(1);
             }
@@ -164,17 +180,70 @@ public class MainGame extends GraphicsProgram {
                 if (timer > 0) timer--;
                 moveBall();
                 checkForCollision();
+                tips();
                 pause(DELAY);
             }
             removeAll();
             xVel = 0;
         }
     }
+    private boolean flag=true;//for fixing bugs with platform (to use tips() only 1 time)
+    private double width = PLATFORM_WIDTH;//for platform collision with walls
+    private final double TIP_X=50;//label tips x
+    private final double TIP_Y=100;//label tips y
+
+    private void tips(){
+//big platform
+        if(tip1==100-bricksQuantity&&flag){
+            remove(platform);
+            width=PLATFORM_WIDTH*2;
+            addPlatform(x,Y_START,width,PLATFORM_HEIGHT,Color.BLACK);
+            tips.setLabel("Big platform!");
+            add(tips);
+            flag=false;
+        }
+       else if(!flag&&tip1==100-bricksQuantity-5){
+           width=PLATFORM_WIDTH;
+        remove(platform);
+            addPlatform(x,Y_START,width,PLATFORM_HEIGHT,Color.BLACK);
+            remove(tips);
+            flag=true;
+       }
+       //2x slower
+       if(tip2==100-bricksQuantity&&flag){
+           xVel=xVel/2;
+           yVel=yVel/2;
+           tips.setLabel("Slower!");
+           add(tips);
+           flag=false;
+       }
+       else if(tip2==100-bricksQuantity-5&&!flag){
+           xVel*=2;
+           yVel*=2;
+           remove(tips);
+           flag=true;
+       }
+       //faster
+       if(tip3==100-bricksQuantity&&flag){
+           xVel=xVel*2;
+           yVel=yVel*2;
+           tips.setLabel("Trash!!!");
+           add(tips);
+           flag=false;
+       }
+       else if(tip3==100-bricksQuantity-5&&!flag){
+           xVel/=2;
+           yVel/=2;
+           remove(tips);
+           flag=true;
+       }
+
+    }
     /**This method changes (X) coordinate of the platform as the mouse moves*/
     public void mouseMoved(MouseEvent e){
         if(xVel!=0) {
-            if (!(e.getX() + PLATFORM_WIDTH / 2 > MAP_WIDTH || e.getX() - PLATFORM_WIDTH / 2 < 0)) {
-                platform.setLocation(e.getX() - PLATFORM_WIDTH / 2, Y_START);
+            if (!(e.getX() + width / 2 > MAP_WIDTH || e.getX() - width / 2 < 0)) {
+                platform.setLocation(e.getX() - width / 2, Y_START);
                 x = e.getX();
             }
         }
@@ -198,6 +267,7 @@ public class MainGame extends GraphicsProgram {
         ball.move(xVel,yVel);
     }
 
+
     /** This method checks for collisions*/
     private void checkForCollision() {
         if(ball.getY()<=Math.abs(yVel)+BAR_HEIGHT){  //for ceiling
@@ -209,6 +279,7 @@ public class MainGame extends GraphicsProgram {
         if(ball.getY()-5>MAP_HEIGHT){
             lives--;
             minusLife();
+            pause(250);
             if(lives>0) {
                 ball.setLocation(X_START-DIAM_BALL/2,MAP_HEIGHT/2-DIAM_BALL/2);
                 boolean xDirection = rgen.nextBoolean();
@@ -239,23 +310,29 @@ public class MainGame extends GraphicsProgram {
                 bricksRemover(ball.getX()+DIAM_BALL+1,ball.getY()+DIAM_BALL/2 - MAP_WIDTH/100,1)){
             xVel = -xVel;
         }
-    }
+
+        }
+
+
 
     /**This method removes the bricks, if the ball crashes into it (or changes the ball's speed to opposite if the collision happened with platform)*/
-    private boolean bricksRemover(double xCoord, double yCoord, int num){
-        if(getElementAt(xCoord, yCoord) != null && getElementAt(xCoord, yCoord) != platform){
-            remove(getElementAt(xCoord, yCoord));
+    private boolean bricksRemover(double xCord, double yCord, int num){
+        if(getElementAt(xCord, yCord) != null && getElementAt(xCord, yCord) != platform){
+            remove(getElementAt(xCord, yCord));
             bricksQuantity--;
             score.setLabel("Score:"+(100 - bricksQuantity));
             return true;
-        } else if(getElementAt(xCoord, yCoord) == platform && timer==0){
+        } else if(getElementAt(xCord, yCord) == platform && timer==0){
             if(xVel*num>0){
                 xVel = -xVel;
             }
             yVel=-yVel;
             timer = 50;
+
             return false;
         }
+
+
         return false;
     }
 
@@ -271,8 +348,8 @@ public class MainGame extends GraphicsProgram {
         ball = new GOval (x-r, y-r, 2*r, 2*r);
         ball.setFilled(true);
         ball.setColor(color);
-        add(ball);
-    }
+    add(ball);
+}
 
     /**This method adds upperBar and all its components (hearts, )*/
     private void addUpperBar(double x, double y, double w,double h, Color color){
