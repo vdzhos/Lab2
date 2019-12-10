@@ -47,7 +47,7 @@ public class MainGame extends GraphicsProgram {
     /**prevents the ball from getting stuck in platform*/
     private int timer=0;
     /**Number of users' lives*/
-    private int NTURNS = 3;
+    private int NTURNS;
     /**Number of bricks left*/
     private int bricksQuantity = -1;
     /**for tips*/
@@ -56,8 +56,8 @@ public class MainGame extends GraphicsProgram {
     private int currentBonus = 0;
     private double bonusChanceCoef = 1;
 
-    private final double TIP_X=50;//label tips x
-    private final double TIP_Y=100;//label tips y
+    private final double TIP_X=185;//label tips x
+    private final double TIP_Y=40;//label tips y
 
     private GOval ball;
     private GRect platform;
@@ -82,7 +82,7 @@ public class MainGame extends GraphicsProgram {
         addPlatform(X_START,Y_START, PLATFORM_WIDTH, PLATFORM_HEIGHT,Color.BLACK);
         addUpperBar(0,0,MAP_WIDTH,BAR_HEIGHT,Color.LIGHT_GRAY);
         tips=new GLabel("",TIP_X,TIP_Y);
-        tips.setFont("Kristen ITC-50");
+        tips.setFont("Kristen ITC-35");
         while(xVel<0.75 && xVel>-0.75){
             xVel = rgen.nextDouble(-2, 2);
         }
@@ -214,12 +214,12 @@ public class MainGame extends GraphicsProgram {
         if(bool && NBonuses>0 && currentBonus==0) {
             bonusChanceCoef+=0.5;
             if(bonusTimer==0){
-                currentBonus = rgen.nextInt(1, 3); // i1 - amount of types of bonuses
+                currentBonus = rgen.nextInt(1, 5); // i1 - amount of types of bonuses
             }
             tipsActivate();
             if(bonusTimer==0) {
                 NBonuses--;
-                bonusTimer = 2500;
+                bonusTimer = 2700;
             }
         }
     }
@@ -229,45 +229,58 @@ public class MainGame extends GraphicsProgram {
             remove(platform);
             addPlatform(x, Y_START, PLATFORM_WIDTH * 2, PLATFORM_HEIGHT, Color.BLACK);
             tips.setLabel("Big platform!");
+            tips.setFont("Kristen ITC-25");
             add(tips);
         } else if (currentBonus == 2) {              //slower
             xVel = xVel / 2;
             yVel = yVel / 2;
             tips.setLabel("Slower!");
+            tips.setFont("Kristen ITC-35");
             add(tips);
         } else if (currentBonus == 3) {              //faster
             xVel = xVel * 2;
             yVel = yVel * 2;
             tips.setLabel("Trash!!!");
+            tips.setFont("Kristen ITC-35");
             add(tips);
+        }
+        else if(currentBonus == 4){                 //small platform
+            remove(platform);
+            addPlatform(x, Y_START, PLATFORM_WIDTH / 2, PLATFORM_HEIGHT, Color.BLACK);
+            tips.setLabel("Small platform!");
+            tips.setFont("Kristen ITC-23");
+            add(tips);
+        }
+        else if(currentBonus==5){
+            plusLife();                             //plus life
+            NTURNS++;
         }
     }
 
-        private void tipsDisactivate(){
-            if(currentBonus==1){
-                remove(platform);
-                addPlatform(x,Y_START,PLATFORM_WIDTH,PLATFORM_HEIGHT,Color.BLACK);
-                remove(tips);
-                currentBonus=0;
-            }else if(currentBonus==2) {
-                xVel *= 2;
-                yVel *= 2;
-                remove(tips);
-                currentBonus=0;
-            }else if(currentBonus==3){
-                xVel/=2;
-                yVel/=2;
-                remove(tips);
-                currentBonus=0;
-            }
+    private void tipsDisactivate(){
+        if(currentBonus==1||currentBonus==4){
+            remove(platform);
+            addPlatform(x,Y_START,PLATFORM_WIDTH,PLATFORM_HEIGHT,Color.BLACK);
+            remove(tips);
+            currentBonus=0;
+        }else if(currentBonus==2) {
+            xVel *= 2;
+            yVel *= 2;
+            remove(tips);
+            currentBonus=0;
+        }else if(currentBonus==3){
+            xVel/=2;
+            yVel/=2;
+            remove(tips);
+            currentBonus=0;
         }
+    }
 
     /**This method changes (X) coordinate of the platform as the mouse moves*/
     public void mouseMoved(MouseEvent e){
         if(xVel!=0) {
-            double width = platform.getWidth();
-            if (!(e.getX() + width / 2 > MAP_WIDTH || e.getX() - width / 2 < 0)) {
-                platform.setLocation(e.getX() - width / 2, Y_START);
+            if (!(e.getX() + platform.getWidth() / 2 > MAP_WIDTH || e.getX() - platform.getWidth() / 2 < 0)) {
+                platform.setLocation(e.getX() - platform.getWidth() / 2, Y_START);
                 x = e.getX();
             }
         }
@@ -336,7 +349,7 @@ public class MainGame extends GraphicsProgram {
             xVel = -xVel;
         }
 
-        }
+    }
 
 
 
@@ -371,8 +384,8 @@ public class MainGame extends GraphicsProgram {
         ball = new GOval (x-r, y-r, 2*r, 2*r);
         ball.setFilled(true);
         ball.setColor(color);
-    add(ball);
-}
+        add(ball);
+    }
 
     /**This method adds upperBar and all its components (hearts, )*/
     private void addUpperBar(double x, double y, double w,double h, Color color){
@@ -385,23 +398,35 @@ public class MainGame extends GraphicsProgram {
         add(new GImage("Heart.png"),MAP_WIDTH-87,7*BAR_HEIGHT/50);
         add(new GImage("Heart.png"),MAP_WIDTH-45,7*BAR_HEIGHT/50);
         score = new GLabel("Score:"+(NROWS*NBRICKS - bricksQuantity));
-        Font score_font = new Font("Eras Bold ITC", Font.BOLD,(int)(40*MAP_WIDTH/500));
-        score.setFont(score_font);
+       // Font score_font = new Font("Eras Bold ITC", Font.BOLD,(int)(40*MAP_WIDTH/500));
+        score.setFont("Cooper Black-40");
         add(score, MAP_WIDTH/50, 4*MAP_HEIGHT/75);
     }
 
     /**This method changes a red heart for a white heart, when users lose the ball*/
     private void minusLife(){
-        if(NTURNS ==2){
-            remove(getElementAt(MAP_WIDTH-25,BAR_HEIGHT/2));
-            add(new GImage("Heart_empty.png"),MAP_WIDTH-45,7*BAR_HEIGHT/50);
+        if(NTURNS ==3) {
+            remove(getElementAt(MAP_WIDTH - 171, BAR_HEIGHT / 2));
+        }else if(NTURNS ==2){
+            remove(getElementAt(MAP_WIDTH-109,BAR_HEIGHT/2));
+            add(new GImage("Heart_empty.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
         } else if(NTURNS ==1){
             remove(getElementAt(MAP_WIDTH-67,BAR_HEIGHT/2));
             add(new GImage("Heart_empty.png"),MAP_WIDTH-87,7*BAR_HEIGHT/50);
         } else if (NTURNS == 0){
-            remove(getElementAt(MAP_WIDTH-109,BAR_HEIGHT/2));
-            add(new GImage("Heart_empty.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
+            remove(getElementAt(MAP_WIDTH-25,BAR_HEIGHT/2));
+            add(new GImage("Heart_empty.png"),MAP_WIDTH-45,7*BAR_HEIGHT/50);
         }
     }
-
+    private void plusLife(){
+        if(NTURNS ==3){
+            add(new GImage("Heart.png"),MAP_WIDTH-171,7*BAR_HEIGHT/50);
+        } else if(NTURNS ==2){
+            remove(getElementAt(MAP_WIDTH-109,BAR_HEIGHT/2));
+            add(new GImage("Heart.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
+        } else if (NTURNS == 1){
+            remove(getElementAt(MAP_WIDTH-87,BAR_HEIGHT/2));
+            add(new GImage("Heart.png"),MAP_WIDTH-87,7*BAR_HEIGHT/50);
+        }
+    }
 }
