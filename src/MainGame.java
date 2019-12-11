@@ -30,7 +30,7 @@ public class MainGame extends GraphicsProgram {
     /**Delay between different objects' moves*/
     private static final double DELAY = 3;
     /**The height of the upper bar, where quantity of lives is displayed*/
-    private static final double BAR_HEIGHT = MAP_HEIGHT/15;
+    private static final double BAR_HEIGHT = MAP_HEIGHT/12.5;
     /**Number of rows*/
     private static final int NROWS = 10;
     /**Number of bricks in a row*/
@@ -62,8 +62,8 @@ public class MainGame extends GraphicsProgram {
     private int currentBonus = 0;
     private double bonusChanceCoef = 1;
 
-    private final double TIP_X=185;//label tips x
-    private final double TIP_Y=40;//label tips y
+    private final double TIP_X=175;//label tips x
+    private final double TIP_Y=45;//label tips y
 
     private GOval ball;
     private GRect platform;
@@ -72,35 +72,35 @@ public class MainGame extends GraphicsProgram {
     private GRect startB;
     private GLabel startL;
     private GLabel tips;
-
-
+    private GLine line;
+    private GImage background = new GImage("bg.png",0,0);
 
     public void init() {
         this.setSize((int)MAP_WIDTH, (int)MAP_HEIGHT);
-        this.setBackground(Color.getHSBColor(30f,29f,25f));
         addMouseListeners();
+        add(background,0,0);
     }
 
     /**Arrangement of necessary objects (ball, platform, bricks, upperBar)*/
     private void setup() {
         addBricks();
         addBall(X_START,MAP_HEIGHT/2,DIAM_BALL/2,Color.BLACK);
-        addPlatform(X_START,Y_START, PLATFORM_WIDTH, PLATFORM_HEIGHT,Color.BLACK);
-        addUpperBar(0,0,MAP_WIDTH,BAR_HEIGHT,Color.LIGHT_GRAY);
-        tips=new GLabel("",TIP_X,TIP_Y);
-        tips.setFont("Kristen ITC-35");
-        while(xVel<0.75 && xVel>-0.75){
-            xVel = rgen.nextDouble(-2, 2);
-        }
-        yVel=1.75;
+        addPlatform(X_START,Y_START, PLATFORM_WIDTH, PLATFORM_HEIGHT,Color.black);
+        addUpperBar(0,0,MAP_WIDTH,BAR_HEIGHT,new Color(206, 194, 205));
+        GLabel bonus = new GLabel("Bonus:",TIP_X,TIP_Y-23);
+        bonus.setFont(new Font("Segoe UI Bold", Font.BOLD,20));
+        add(bonus);
+        tips = new GLabel("————",TIP_X,TIP_Y);
+        tips.setFont(new Font("Segoe UI Black", Font.BOLD,20));
+        add(tips);
     }
 
     /**This method creates all the menu buttons*/
     private void menu(){
         createMenuButton("Start", 40,3*MAP_WIDTH/8,MAP_HEIGHT/4,
-                MAP_WIDTH/4,MAP_WIDTH/10, new Color(91,168,245), 0);
+                MAP_WIDTH/4,MAP_WIDTH/10, new Color(176, 213,245), 0);
         createMenuButton("Exit", 40, 2*MAP_WIDTH/5,2*MAP_HEIGHT/5,
-                MAP_WIDTH/5,MAP_WIDTH/10, new Color(245, 15, 41), 2);
+                MAP_WIDTH/5,MAP_WIDTH/10, new Color(221, 154, 161), 2);
         bricksQuantity = NROWS*NBRICKS;
         NTURNS = 3;
         currentBonus=0;
@@ -116,14 +116,31 @@ public class MainGame extends GraphicsProgram {
         Font font_btn = new Font("Segoe UI Semibold", Font.BOLD, (int)(size*MAP_WIDTH/500));
         btn_label.setFont(font_btn);
         btn.setFilled(true);
-        btn.setFillColor(new Color(206,206,206));
+        btn.setFillColor(new Color(206, 194, 205));
         btn.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if(num==1){
                     timer = 1;
                     removeAll();
+                    add(background,0,0);
                     setup();
+                    if(btn_label.getLabel().equals("Easy")){
+                        while(xVel<0.5 && xVel>-0.5){
+                            xVel = rgen.nextDouble(-1, 1);
+                        }
+                        yVel=1;
+                    }else if(btn_label.getLabel().equals("Medium")){
+                        while(xVel<1 && xVel>-1){
+                            xVel = rgen.nextDouble(-1.75, 1.75);
+                        }
+                        yVel=1.75;
+                    }else{
+                        while(xVel<1.75 && xVel>-1.75){
+                            xVel = rgen.nextDouble(-2.5, 2.5);
+                        }
+                        yVel=2.5;
+                    }
                 } else if(num == 2){
                     System.exit(0);
                 }
@@ -149,15 +166,15 @@ public class MainGame extends GraphicsProgram {
             @Override
             public void mouseExited(MouseEvent e) {
                 if (num == 1 && timer == 0) {
-                    btn.setFillColor(new Color(206, 206, 206));
-                    if(getElementAt(e.getX(),e.getY()) == null){
+                    btn.setFillColor(new Color(206, 194, 205));
+                    if(getElementAt(e.getX(),e.getY()) == background){
                         createLevels(1);
-                        startB.setFillColor(new Color(206, 206, 206));
+                        startB.setFillColor(new Color(206, 194, 205));
                         startB.move(50,0);
                         startL.move(50,0);
                     }
                 } else if(num ==2){
-                    btn.setFillColor(new Color(206, 206, 206));
+                    btn.setFillColor(new Color(206, 194, 205));
                 }
             }
         });
@@ -172,16 +189,19 @@ public class MainGame extends GraphicsProgram {
     private void createLevels(int num){
         if(num == 0){
             createMenuButton("Easy", 25,21*MAP_WIDTH/40, MAP_HEIGHT/4, MAP_WIDTH/4,MAP_WIDTH/15+2,
-                    new Color(159, 245, 86), 1);
+                    new Color(196, 245, 183), 1);
             createMenuButton("Medium", 25,21*MAP_WIDTH/40, MAP_HEIGHT/4+(MAP_WIDTH/15+2), MAP_WIDTH/4,MAP_WIDTH/15+2,
-                    new Color(245, 230, 102), 1);
+                    new Color(245, 242, 183), 1);
             createMenuButton("Hard", 25,21*MAP_WIDTH/40, MAP_HEIGHT/4+2*(MAP_WIDTH/15+2), MAP_WIDTH/4,MAP_WIDTH/15+2,
-                    new Color(221, 61, 68), 1);
+                    new Color(221, 154, 161), 1);
 
         } else{
             if(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+10) != null &&
                     getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+(MAP_WIDTH/15+2)+10) != null &&
-                    getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+2*(MAP_WIDTH/15+2)+10) != null) {
+                    getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+2*(MAP_WIDTH/15+2)+10) != null &&
+                    getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+10) != background &&
+                    getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+(MAP_WIDTH/15+2)+10) != background &&
+                    getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+2*(MAP_WIDTH/15+2)+10) != background  ) {
                 remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+10));
                 remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+10));
                 remove(getElementAt(29*MAP_WIDTH/50,MAP_HEIGHT/4+(MAP_WIDTH/15+2)+10));
@@ -208,6 +228,7 @@ public class MainGame extends GraphicsProgram {
                 pause(DELAY);
             }
             removeAll();
+            add(background,0,0);
             xVel = 0;
         }
     }
@@ -216,7 +237,6 @@ public class MainGame extends GraphicsProgram {
         double a = NROWS*NBRICKS-bricksQuantity;
         double b = NROWS*NBRICKS*5;
         boolean bool = rgen.nextBoolean(a/(b*bonusChanceCoef));
-        System.out.println(a/(b*bonusChanceCoef));
         if(bool && NBonuses>0 && currentBonus==0) {
             bonusChanceCoef+=0.5;
             if(bonusTimer==0){
@@ -234,32 +254,40 @@ public class MainGame extends GraphicsProgram {
         if (currentBonus == 1) {                   //big platform
             remove(platform);
             addPlatform(x, Y_START, PLATFORM_WIDTH * 2, PLATFORM_HEIGHT, Color.BLACK);
-            tips.setLabel("Big platform!");
-            tips.setFont("Kristen ITC-25");
+            tips.setLabel("Big paddle!");
             add(tips);
         } else if (currentBonus == 2) {              //slower
-            xVel = xVel / 2;
-            yVel = yVel / 2;
-            tips.setLabel("Slower!");
-            tips.setFont("Kristen ITC-35");
+            if(yVel==1){
+                xVel = xVel/1.25;
+                yVel = yVel/1.25;
+            }else{
+                xVel = xVel/2;
+                yVel = yVel/2;
+            }
+            tips.setLabel("Slow down!");
             add(tips);
         } else if (currentBonus == 3) {              //faster
-            xVel = xVel * 2;
-            yVel = yVel * 2;
-            tips.setLabel("Trash!!!");
-            tips.setFont("Kristen ITC-35");
+            if(yVel==2.5){
+                xVel = xVel * 1.25;
+                yVel = yVel * 1.25;
+            }else{
+                xVel = xVel * 2;
+                yVel = yVel * 2;
+            }
+            tips.setLabel("Super speed!");
             add(tips);
         }
         else if(currentBonus == 4){                 //small platform
             remove(platform);
             addPlatform(x, Y_START, PLATFORM_WIDTH / 2, PLATFORM_HEIGHT, Color.BLACK);
-            tips.setLabel("Small platform!");
-            tips.setFont("Kristen ITC-23");
+            tips.setLabel("Small paddle!");
             add(tips);
         }
         else if(currentBonus==5){
-            plusLife();                             //plus life
-            NTURNS++;
+            plusLife(); //plus life
+            if(NTURNS<4){
+                NTURNS++;
+            }
             currentBonus=0;
         }
     }
@@ -268,17 +296,27 @@ public class MainGame extends GraphicsProgram {
         if(currentBonus==1||currentBonus==4){
             remove(platform);
             addPlatform(x,Y_START,PLATFORM_WIDTH,PLATFORM_HEIGHT,Color.BLACK);
-            remove(tips);
+            tips.setLabel("——————");
             currentBonus=0;
         }else if(currentBonus==2) {
-            xVel *= 2;
-            yVel *= 2;
-            remove(tips);
+            if(yVel==1/1.25){
+                xVel = xVel * 1.25;
+                yVel = yVel * 1.25;
+            }else{
+                xVel = xVel * 2;
+                yVel = yVel * 2;
+            }
+            tips.setLabel("——————");
             currentBonus=0;
         }else if(currentBonus==3){
-            xVel/=2;
-            yVel/=2;
-            remove(tips);
+            if(yVel==2.5*1.25){
+                xVel = xVel/1.25;
+                yVel = yVel/1.25;
+            }else{
+                xVel = xVel/2;
+                yVel = yVel/2;
+            }
+            tips.setLabel("——————");
             currentBonus=0;
         }
     }
@@ -372,7 +410,8 @@ public class MainGame extends GraphicsProgram {
 
     /**This method removes the bricks, if the ball crashes into it (or changes the ball's speed to opposite if the collision happened with platform)*/
     private boolean bricksRemover(double xCord, double yCord, int num){
-        if(getElementAt(xCord, yCord) != null && getElementAt(xCord, yCord) != platform){
+        if(getElementAt(xCord, yCord) != background && getElementAt(xCord, yCord) != null
+                && getElementAt(xCord, yCord) != platform && getElementAt(xCord, yCord) != line){
             remove(getElementAt(xCord, yCord));
             bricksQuantity--;
             bonusSetup();
@@ -422,39 +461,43 @@ public class MainGame extends GraphicsProgram {
         upperBar.setFillColor(color);
         upperBar.setColor(color);
         add(upperBar);
-        add(new GImage("Heart.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
-        add(new GImage("Heart.png"),MAP_WIDTH-87,7*BAR_HEIGHT/50);
-        add(new GImage("Heart.png"),MAP_WIDTH-45,7*BAR_HEIGHT/50);
+        add(new GImage("Heart.png"),MAP_WIDTH-129,(BAR_HEIGHT-34)/2);
+        add(new GImage("Heart.png"),MAP_WIDTH-87,(BAR_HEIGHT-34)/2);
+        add(new GImage("Heart.png"),MAP_WIDTH-45,(BAR_HEIGHT-34)/2);
         score = new GLabel("Score:"+(NROWS*NBRICKS - bricksQuantity));
-       // Font score_font = new Font("Eras Bold ITC", Font.BOLD,(int)(40*MAP_WIDTH/500));
-        score.setFont("Cooper Black-40");
-        add(score, MAP_WIDTH/50, 4*MAP_HEIGHT/75);
+        Font score_font = new Font("Eras Bold ITC", Font.PLAIN,(int)(30*BAR_HEIGHT/60));
+        score.setColor(new Color(55, 28, 85));
+        score.setFont(score_font);
+        add(score, MAP_WIDTH/50, 3*MAP_HEIGHT/55);
+        line = new GLine(0,h,w,h);
+        line.setColor(new Color(55, 28, 85));
+        add(line);
     }
 
     /**This method changes a red heart for a white heart, when users lose the ball*/
     private void minusLife(){
         if(NTURNS ==3) {
-            remove(getElementAt(MAP_WIDTH - 171, BAR_HEIGHT / 2));
+            remove(getElementAt(MAP_WIDTH - 171, (BAR_HEIGHT-34)/2));
         }else if(NTURNS ==2){
             remove(getElementAt(MAP_WIDTH-109,BAR_HEIGHT/2));
-            add(new GImage("Heart_empty.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
+            add(new GImage("Heart_empty.png"),MAP_WIDTH-129,(BAR_HEIGHT-34)/2);
         } else if(NTURNS ==1){
             remove(getElementAt(MAP_WIDTH-67,BAR_HEIGHT/2));
-            add(new GImage("Heart_empty.png"),MAP_WIDTH-87,7*BAR_HEIGHT/50);
+            add(new GImage("Heart_empty.png"),MAP_WIDTH-87,(BAR_HEIGHT-34)/2);
         } else if (NTURNS == 0){
             remove(getElementAt(MAP_WIDTH-25,BAR_HEIGHT/2));
-            add(new GImage("Heart_empty.png"),MAP_WIDTH-45,7*BAR_HEIGHT/50);
+            add(new GImage("Heart_empty.png"),MAP_WIDTH-45,(BAR_HEIGHT-34)/2);
         }
     }
     private void plusLife(){
         if(NTURNS ==3){
-            add(new GImage("Heart.png"),MAP_WIDTH-171,7*BAR_HEIGHT/50);
+            add(new GImage("Heart.png"),MAP_WIDTH-171,(BAR_HEIGHT-34)/2);
         } else if(NTURNS ==2){
             remove(getElementAt(MAP_WIDTH-109,BAR_HEIGHT/2));
-            add(new GImage("Heart.png"),MAP_WIDTH-129,7*BAR_HEIGHT/50);
+            add(new GImage("Heart.png"),MAP_WIDTH-129,(BAR_HEIGHT-34)/2);
         } else if (NTURNS == 1){
             remove(getElementAt(MAP_WIDTH-87,BAR_HEIGHT/2));
-            add(new GImage("Heart.png"),MAP_WIDTH-87,7*BAR_HEIGHT/50);
+            add(new GImage("Heart.png"),MAP_WIDTH-87,(BAR_HEIGHT-34)/2);
         }
     }
 
