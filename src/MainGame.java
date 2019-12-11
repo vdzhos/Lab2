@@ -1,8 +1,14 @@
 import acm.graphics.*;
 import acm.program.*;
 import acm.util.RandomGenerator;
+
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
 import java.awt.event.*;
 import java.awt.*;
+import java.net.URL;
 
 public class MainGame extends GraphicsProgram {
 
@@ -254,6 +260,7 @@ public class MainGame extends GraphicsProgram {
         else if(currentBonus==5){
             plusLife();                             //plus life
             NTURNS++;
+            currentBonus=0;
         }
     }
 
@@ -310,9 +317,21 @@ public class MainGame extends GraphicsProgram {
     private void checkForCollision() {
         if(ball.getY()<=Math.abs(yVel)+BAR_HEIGHT){  //for ceiling
             yVel = -yVel;
+            try {
+                audio(this.getClass().getResource("Ting.aiff"));
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
+
         }
         if((ball.getX()>=MAP_WIDTH-DIAM_BALL)||(ball.getX()<=-Math.abs(yVel))){  //for walls
             xVel = -xVel;
+            try {
+                audio(this.getClass().getResource("Ting.aiff"));
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
+
         }
         if(ball.getY()-5>MAP_HEIGHT){
             NTURNS--;
@@ -351,8 +370,6 @@ public class MainGame extends GraphicsProgram {
 
     }
 
-
-
     /**This method removes the bricks, if the ball crashes into it (or changes the ball's speed to opposite if the collision happened with platform)*/
     private boolean bricksRemover(double xCord, double yCord, int num){
         if(getElementAt(xCord, yCord) != null && getElementAt(xCord, yCord) != platform){
@@ -360,6 +377,11 @@ public class MainGame extends GraphicsProgram {
             bricksQuantity--;
             bonusSetup();
             score.setLabel("Score:"+(NROWS*NBRICKS - bricksQuantity));
+            try {
+                audio(this.getClass().getResource("Ting.aiff"));
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
             return true;
         } else if(getElementAt(xCord, yCord) == platform && timer==0){
             if(xVel*num>0){
@@ -367,6 +389,12 @@ public class MainGame extends GraphicsProgram {
             }
             yVel=-yVel;
             timer = 50;
+            try {
+                audio(this.getClass().getResource("platform.wav"));
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
+
             return false;
         }
         return false;
@@ -428,5 +456,16 @@ public class MainGame extends GraphicsProgram {
             remove(getElementAt(MAP_WIDTH-87,BAR_HEIGHT/2));
             add(new GImage("Heart.png"),MAP_WIDTH-87,7*BAR_HEIGHT/50);
         }
+    }
+
+    private void audio(URL file) throws Throwable {
+        Clip clip;
+        AudioInputStream ais = AudioSystem.getAudioInputStream(file);
+        clip = AudioSystem.getClip();
+        clip.open(ais);
+        clip.setFramePosition(0);
+        FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+        volume.setValue(-10);
+        clip.start();
     }
 }
