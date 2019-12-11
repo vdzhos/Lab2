@@ -41,13 +41,10 @@ public class MainGame extends GraphicsProgram {
     private static final double DIST_BETWEEN_X = 5;
     /**The distance between bricks (Y) coord*/
     private static final double DIST_BETWEEN_Y = 3;
-
-
     /**speed of the ball (X)*/
     private double xVel = 0;
     /**speed of the ball (Y)*/
     private double yVel = 1.75;
-
     /**coordinate X of the mouse*/
     private int x=0;
     /**prevents the ball from getting stuck in platform*/
@@ -65,6 +62,7 @@ public class MainGame extends GraphicsProgram {
     private final double TIP_X=175;//label tips x
     private final double TIP_Y=45;//label tips y
 
+    private Clip clip;
     private GOval ball;
     private GRect platform;
     private GRect upperBar;
@@ -75,13 +73,42 @@ public class MainGame extends GraphicsProgram {
     private GLine line;
     private GImage background = new GImage("bg.png",0,0);
 
+    /**Main method*/
+    public void run() {
+        while(true){
+            menu();
+            while (xVel == 0) {
+                pause(1);
+            }
+            while (NTURNS > 0 && bricksQuantity > 0) {
+                if (timer > 0) timer--;
+                if (bonusTimer > 0) bonusTimer--;
+                moveBall();
+                checkForCollision();
+                if(bonusTimer==0) {
+                    tipsDeactivate();
+                }
+                pause(DELAY);
+            }
+            removeAll();
+            add(background,0,0);
+            xVel = 0;
+        }
+    }
+
+    /**Initial configurations of the program window*/
     public void init() {
         this.setSize((int)MAP_WIDTH, (int)MAP_HEIGHT);
         addMouseListeners();
         add(background,0,0);
+        try {
+            audio(this.getClass().getResource("BGMusic.wav"));
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
     }
 
-    /**Arrangement of necessary objects (ball, platform, bricks, upperBar)*/
+    /**Arrangement of necessary objects (ball, platform, bricks, upperBar, labels)*/
     private void setup() {
         addBricks();
         addBall(X_START,MAP_HEIGHT/2,DIAM_BALL/2,Color.BLACK);
@@ -95,8 +122,28 @@ public class MainGame extends GraphicsProgram {
         add(tips);
     }
 
-    /**This method creates all the menu buttons*/
+    /**This method creates all the menu buttons and the label, which displays whether you have won or have lost*/
     private void menu(){
+        if(bricksQuantity!=-1){
+            GLabel wonLost;
+            if(bricksQuantity==0){
+                wonLost = new GLabel("You won!");
+            }else{
+                wonLost = new GLabel("You lost!");
+            }
+            wonLost.setFont(new Font("Segoe UI Bold", Font.BOLD,35));
+            GLabel score = new GLabel("Score:"+(NROWS*NBRICKS-bricksQuantity));
+            score.setFont(new Font("Segoe UI Bold", Font.BOLD,35));
+            add(wonLost,5*MAP_WIDTH/14,MAP_HEIGHT/8);
+            add(score,19*MAP_WIDTH/54,9*MAP_HEIGHT/50);
+            if(score.getLabel().length()==7){
+                add(score,8*MAP_WIDTH/21,9*MAP_HEIGHT/50);
+            }else if(score.getLabel().length()==8){
+                add(score,13*MAP_WIDTH/36,9*MAP_HEIGHT/50);
+            }else{
+                add(score,19*MAP_WIDTH/54,9*MAP_HEIGHT/50);
+            }
+        }
         createMenuButton("Start", 40,3*MAP_WIDTH/8,MAP_HEIGHT/4,
                 MAP_WIDTH/4,MAP_WIDTH/10, new Color(176, 213,245), 0);
         createMenuButton("Exit", 40, 2*MAP_WIDTH/5,2*MAP_HEIGHT/5,
@@ -186,6 +233,7 @@ public class MainGame extends GraphicsProgram {
         }
     }
 
+    /**This method creates and deletes the level buttons when the user enters and exits the "Start" button respectively*/
     private void createLevels(int num){
         if(num == 0){
             createMenuButton("Easy", 25,21*MAP_WIDTH/40, MAP_HEIGHT/4, MAP_WIDTH/4,MAP_WIDTH/15+2,
@@ -211,28 +259,8 @@ public class MainGame extends GraphicsProgram {
             }
         }
     }
-    public void run() {
-        while(true){
-            menu();
-            while (xVel == 0) {
-                pause(1);
-            }
-            while (NTURNS > 0 && bricksQuantity > 0) {
-                if (timer > 0) timer--;
-                if (bonusTimer > 0) bonusTimer--;
-                moveBall();
-                checkForCollision();
-                if(bonusTimer==0) {
-                    tipsDisactivate();
-                }
-                pause(DELAY);
-            }
-            removeAll();
-            add(background,0,0);
-            xVel = 0;
-        }
-    }
 
+    /**This method generates the random boolean depending on the amount of bricks left and, if it is true, it randomly chooses a bonus which the user gets*/
     private void bonusSetup(){
         double a = NROWS*NBRICKS-bricksQuantity;
         double b = NROWS*NBRICKS*5;
@@ -250,6 +278,7 @@ public class MainGame extends GraphicsProgram {
         }
     }
 
+    /**This method actives the bonus which was randomly chosen*/
     private void tipsActivate() {
         if (currentBonus == 1) {                   //big platform
             remove(platform);
@@ -257,7 +286,7 @@ public class MainGame extends GraphicsProgram {
             tips.setLabel("Big paddle!");
             add(tips);
         } else if (currentBonus == 2) {              //slower
-            if(yVel==1){
+            if(yVel==-1){
                 xVel = xVel/1.25;
                 yVel = yVel/1.25;
             }else{
@@ -266,8 +295,8 @@ public class MainGame extends GraphicsProgram {
             }
             tips.setLabel("Slow down!");
             add(tips);
-        } else if (currentBonus == 3) {              //faster
-            if(yVel==2.5){
+        } else if (currentBonus == 3) {                 //faster
+            if(yVel==-2.5){
                 xVel = xVel * 1.25;
                 yVel = yVel * 1.25;
             }else{
@@ -292,14 +321,29 @@ public class MainGame extends GraphicsProgram {
         }
     }
 
-    private void tipsDisactivate(){
+    /**This method changes (X) coordinate of the platform as the mouse moves*/
+    public void mouseMoved(MouseEvent e){
+        if(xVel!=0) {
+            if (!(e.getX() + platform.getWidth() / 2 > MAP_WIDTH || e.getX() - platform.getWidth() / 2 < 0)) {
+                platform.setLocation(e.getX() - platform.getWidth() / 2, Y_START);
+                x = e.getX();
+            }
+        }
+        if(!clip.isActive()){
+            clip.setMicrosecondPosition(0);
+            clip.start();
+        }
+    }
+
+    /**This method deactivates the bonuses when the timer expires*/
+    private void tipsDeactivate(){
         if(currentBonus==1||currentBonus==4){
             remove(platform);
             addPlatform(x,Y_START,PLATFORM_WIDTH,PLATFORM_HEIGHT,Color.BLACK);
             tips.setLabel("——————");
             currentBonus=0;
         }else if(currentBonus==2) {
-            if(yVel==1/1.25){
+            if(yVel==-1/1.25){
                 xVel = xVel * 1.25;
                 yVel = yVel * 1.25;
             }else{
@@ -309,7 +353,7 @@ public class MainGame extends GraphicsProgram {
             tips.setLabel("——————");
             currentBonus=0;
         }else if(currentBonus==3){
-            if(yVel==2.5*1.25){
+            if(yVel==-2.5*1.25){
                 xVel = xVel/1.25;
                 yVel = yVel/1.25;
             }else{
@@ -318,16 +362,6 @@ public class MainGame extends GraphicsProgram {
             }
             tips.setLabel("——————");
             currentBonus=0;
-        }
-    }
-
-    /**This method changes (X) coordinate of the platform as the mouse moves*/
-    public void mouseMoved(MouseEvent e){
-        if(xVel!=0) {
-            if (!(e.getX() + platform.getWidth() / 2 > MAP_WIDTH || e.getX() - platform.getWidth() / 2 < 0)) {
-                platform.setLocation(e.getX() - platform.getWidth() / 2, Y_START);
-                x = e.getX();
-            }
         }
     }
 
@@ -454,7 +488,7 @@ public class MainGame extends GraphicsProgram {
         add(ball);
     }
 
-    /**This method adds upperBar and all its components (hearts, )*/
+    /**This method adds upperBar and all its components*/
     private void addUpperBar(double x, double y, double w,double h, Color color){
         upperBar = new GRect(x,y,w,h);
         upperBar.setFilled(true);
@@ -489,6 +523,7 @@ public class MainGame extends GraphicsProgram {
             add(new GImage("Heart_empty.png"),MAP_WIDTH-45,(BAR_HEIGHT-34)/2);
         }
     }
+     /**This method adds the heart image to the upper bar when the user got a special bonus "extra life"*/
     private void plusLife(){
         if(NTURNS ==3){
             add(new GImage("Heart.png"),MAP_WIDTH-171,(BAR_HEIGHT-34)/2);
@@ -501,6 +536,7 @@ public class MainGame extends GraphicsProgram {
         }
     }
 
+    /**This method starts the audio, the url of which is passed as a parameter*/
     private void audio(URL file) throws Throwable {
         Clip clip;
         AudioInputStream ais = AudioSystem.getAudioInputStream(file);
@@ -508,7 +544,13 @@ public class MainGame extends GraphicsProgram {
         clip.open(ais);
         clip.setFramePosition(0);
         FloatControl volume = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-        volume.setValue(-10);
+        if(file.equals(this.getClass().getResource("platform.wav")) ||
+              file.equals(this.getClass().getResource("Ting.aiff"))){
+            volume.setValue(-10);
+        }else{
+            volume.setValue(-30);
+            this.clip = clip;
+        }
         clip.start();
     }
 }
